@@ -33,35 +33,31 @@
 //   }
 // }
 
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../model/sentiment_response.dart';
 
 class SentimentService {
-  final String _apiKey = "AIzaSyDEK_4iBfgCEeWUpBtqzInsoEeag-f7uBc";
-
+  final String _baseUrl = "http://localhost:3000/api/sentiment"; 
 
   Future<SentimentResponse> analyzeSentiment(String review) async {
-    try {
-      final model = GenerativeModel(
-        model: 'gemini-2.5-flash', 
-        apiKey: _apiKey,
-      );
+    final response = await http.post(
+      Uri.parse(_baseUrl),
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: jsonEncode({
+        "review": review
+      }),
+    );
 
-      final prompt = "Analisis sentimen ulasan berikut. Jawab hanya dengan satu kata: Positif, Negatif, atau Netral. Ulasan: \"$review\"";
-      
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
-      
-      final String sentimentResult = response.text?.trim() ?? "Netral";
-
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return SentimentResponse.fromJson(data);
+    } else {
       return SentimentResponse(
         review: review,
-        sentiment: sentimentResult,
-      );
-    } catch (e) {
-      return SentimentResponse(
-        review: review,
-        sentiment: "Error: Model tidak didukung atau API Key salah.",
+        sentiment: "Error"
       );
     }
   }
